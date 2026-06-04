@@ -1,0 +1,87 @@
+name: Build Kernel Image
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y \
+            build-essential \
+            bc \
+            bison \
+            flex \
+            libssl-dev \
+            libelf-dev \
+            libncurses-dev \
+            dwarves \
+            cpio \
+            kmod \
+            gcc-aarch64-linux-gnu \
+            gcc-x86-64-linux-gnu \
+            binutils-x86-64-linux-gnu
+
+      - name: Build Image
+        run: |
+          make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- \
+            HOSTCC=x86_64-linux-gnu-gcc \
+            HOSTCXX=x86_64-linux-gnu-g++ \
+            HOSTLD=x86_64-linux-gnu-ld \
+            HOSTAR=x86_64-linux-gnu-ar \
+            mrproper
+
+          make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- \
+            HOSTCC=x86_64-linux-gnu-gcc \
+            HOSTCXX=x86_64-linux-gnu-g++ \
+            HOSTLD=x86_64-linux-gnu-ld \
+            HOSTAR=x86_64-linux-gnu-ar \
+            HOST_EXTRACFLAGS="-I/usr/include" \
+            olddefconfig
+
+          make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- \
+            HOSTCC=x86_64-linux-gnu-gcc \
+            HOSTCXX=x86_64-linux-gnu-g++ \
+            HOSTLD=x86_64-linux-gnu-ld \
+            HOSTAR=x86_64-linux-gnu-ar \
+            prepare
+
+          cp arch/arm64/.config .config
+
+          scripts/config --disable CONFIG_BPF_SYSCALL
+          scripts/config --disable CONFIG_DEBUG_INFO_BTF
+          scripts/config --disable CONFIG_LTO_NONE
+          scripts/config --enable CONFIG_LTO_CLANG_THIN
+
+          make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- \
+            HOSTCC=x86_64-linux-gnu-gcc \
+            HOSTCXX=x86_64-linux-gnu-g++ \
+            HOSTLD=x86_64-linux-gnu-ld \
+            HOSTAR=x86_64-linux-gnu-ar \
+            olddefconfig
+
+          cp arch/arm64/.config .config
+
+          scripts/config --disable CONFIG_BPF_SYSCALL
+          scripts/config --disable CONFIG_DEBUG_INFO_BTF
+          scripts/config --disable CONFIG_LTO_NONE
+          scripts/config --enable     CONFIG_LTO_CLANG_THIN
+          make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- \
+            HOSTCC=x86_64-linux-gnu-gcc \
+            HOSTCXX=x86_64-linux-gnu-g++ \
+            HOSTLD=x86_64-linux-gnu-ld \
+            HOSTAR=x86_64-linux-gnu-ar \
+            Image -j$(nproc)
+
+      - name: Upload Image
+        uses: actions/upload-artifact@v4
+        with:
+          name: Image
+          path: arch/arm64/boot/Image

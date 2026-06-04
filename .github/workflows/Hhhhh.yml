@@ -34,7 +34,7 @@ jobs:
      
            cp H/.config .config
 
-          make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- \
+           make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- \
             HOSTCC=x86_64-linux-gnu-gcc \
             HOSTCXX=x86_64-linux-gnu-g++ \
             HOSTLD=x86_64-linux-gnu-ld \
@@ -45,7 +45,7 @@ jobs:
 
 
 
-          make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- \
+           make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- \
             HOSTCC=x86_64-linux-gnu-gcc \
             HOSTCXX=x86_64-linux-gnu-g++ \
             HOSTLD=x86_64-linux-gnu-ld \
@@ -54,12 +54,12 @@ jobs:
 
           
 
-          cp H/.config .config
+           cp H/.config .config
       
-          sed -i '/set_bit(EV_REP, hi->input->evbit);/d' drivers/hid/hid-samsung.c
-          sed -i '/switch (usage->hid & HID_USAGE) {/i\        set_bit(EV_REP, hi->input->evbit);' drivers/hid/hid-samsung.c
+           sed -i '/set_bit(EV_REP, hi->input->evbit);/d' drivers/hid/hid-samsung.c
+           sed -i '/switch (usage->hid & HID_USAGE) {/i\        set_bit(EV_REP, hi->input->evbit);' drivers/hid/hid-samsung.c
           
-          make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- \
+           make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- \
             HOSTCC=x86_64-linux-gnu-gcc \
             HOSTCXX=x86_64-linux-gnu-g++ \
             HOSTLD=x86_64-linux-gnu-ld \

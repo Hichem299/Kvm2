@@ -27,11 +27,9 @@ jobs:
             kmod \
             gcc-aarch64-linux-gnu \
             gcc-x86-64-linux-gnu \
-            binutils-x86-64-linux-gnu
-
-      - name: Build Image
-        run: |   
-     
+            binutils-x86-64-linux-gnu 
+            - name: Build Image
+            run: |   
            cp H/.config .config
 
            make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- \

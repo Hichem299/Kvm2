@@ -1,0 +1,75 @@
+name: Build Kernel Image
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y \
+            build-essential \
+            bc \
+            bison \
+            flex \
+            libssl-dev \
+            libelf-dev \
+            libncurses-dev \
+            dwarves \
+            cpio \
+            kmod \
+            gcc-aarch64-linux-gnu \
+            gcc-x86-64-linux-gnu \
+            binutils-x86-64-linux-gnu
+
+      - name: Fix permissions
+        run: |
+          chmod -R 755 .
+          find . -name "*.sh" -exec chmod +x {} \;
+          find . -name "Makefile" -exec chmod 644 {} \;
+          find . -name "*.c" -exec chmod 644 {} \;
+          find . -name "*.h" -exec chmod 644 {} \;
+
+      - name: Build Image
+        run: |
+          cp H/.config .config
+
+          make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- \
+            HOSTCC=x86_64-linux-gnu-gcc \
+            HOSTCXX=x86_64-linux-gnu-g++ \
+            HOSTLD=x86_64-linux-gnu-ld \
+            HOSTAR=x86_64-linux-gnu-ar \
+            HOST_EXTRACFLAGS="-I/usr/include" \
+            olddefconfig
+
+          make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- \
+            HOSTCC=x86_64-linux-gnu-gcc \
+            HOSTCXX=x86_64-linux-gnu-g++ \
+            HOSTLD=x86_64-linux-gnu-ld \
+            HOSTAR=x86_64-linux-gnu-ar \
+            prepare
+
+          cp H/.config .config
+
+          sed -i '/set_bit(EV_REP, hi->input->evbit);/d' drivers/hid/hid-samsung.c
+          sed -i '/switch (usage->hid & HID_USAGE) {/i\        set_bit(EV_REP, hi->input->evbit);' drivers/hid/hid-samsung.c
+
+          make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- \
+            HOSTCC=x86_64-linux-gnu-gcc \
+            HOSTCXX=x86_64-linux-gnu-g++ \
+            HOSTLD=x86_64-linux-gnu-ld \
+            HOSTAR=x86_64-linux-gnu-ar \
+            Image -j$(nproc)
+
+      - name: Upload Image
+        uses: actions/upload-artifact@v4
+        with:
+          name: Image
+          path: arch/arm64/boot/Image

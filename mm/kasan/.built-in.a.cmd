@@ -1,0 +1,1 @@
+cmd_mm/kasan/built-in.a := echo >/dev/null; rm -f mm/kasan/built-in.a; ar cDPrST mm/kasan/built-in.a mm/kasan/common.o mm/kasan/report.o mm/kasan/hw_tags.o mm/kasan/report_hw_tags.o mm/kasan/tags.o mm/kasan/report_tags.o

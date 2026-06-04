@@ -1,0 +1,20 @@
+cmd_usr/include/asm/sembuf.hdrtest := gcc -std=c90 -Wall -Werror=implicit-function-declaration -Wp,-MMD,usr/include/asm/.sembuf.hdrtest.d -I./usr/include -S -o /dev/null -x c /dev/null  -include usr/include/asm/sembuf.h -include usr/include/asm/sembuf.h; perl ./scripts/headers_check.pl usr/include arm64 usr/include/asm/sembuf.h; touch usr/include/asm/sembuf.hdrtest
+
+source_usr/include/asm/sembuf.hdrtest := /dev/null
+
+deps_usr/include/asm/sembuf.hdrtest := \
+  usr/include/asm/sembuf.h \
+  usr/include/asm-generic/sembuf.h \
+  usr/include/asm/bitsperlong.h \
+  usr/include/asm-generic/bitsperlong.h \
+    $(wildcard include/config/64BIT) \
+  usr/include/asm/ipcbuf.h \
+  usr/include/asm-generic/ipcbuf.h \
+  usr/include/linux/posix_types.h \
+  usr/include/linux/stddef.h \
+  usr/include/asm/posix_types.h \
+  usr/include/asm-generic/posix_types.h \
+
+usr/include/asm/sembuf.hdrtest: $(deps_usr/include/asm/sembuf.hdrtest)
+
+$(deps_usr/include/asm/sembuf.hdrtest):

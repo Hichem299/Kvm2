@@ -1,0 +1,1 @@
+cmd_arch/arm64/kvm/hyp/built-in.a := echo >/dev/null; rm -f arch/arm64/kvm/hyp/built-in.a; ar cDPrST arch/arm64/kvm/hyp/built-in.a arch/arm64/kvm/hyp/vhe/built-in.a arch/arm64/kvm/hyp/nvhe/built-in.a arch/arm64/kvm/hyp/pgtable.o

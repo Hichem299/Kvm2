@@ -1,0 +1,1 @@
+cmd_/root/-Hichem299-s-kernel-SEA-A057F-A057FXXSDDZB3-android15/kernel_platform/common/tools/bpf/resolve_btfids/fixdep-in.o :=  ld -r -o /root/-Hichem299-s-kernel-SEA-A057F-A057FXXSDDZB3-android15/kernel_platform/common/tools/bpf/resolve_btfids/fixdep-in.o  /root/-Hichem299-s-kernel-SEA-A057F-A057FXXSDDZB3-android15/kernel_platform/common/tools/bpf/resolve_btfids/fixdep.o

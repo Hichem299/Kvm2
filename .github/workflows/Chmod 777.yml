@@ -28,7 +28,6 @@ jobs:
             gcc-aarch64-linux-gnu \
             gcc-x86-64-linux-gnu \
             binutils-x86-64-linux-gnu
-
       - name: Fix permissions
         run: |
           chmod -R 755 .
@@ -36,6 +35,13 @@ jobs:
           find . -name "Makefile" -exec chmod 644 {} \;
           find . -name "*.c" -exec chmod 644 {} \;
           find . -name "*.h" -exec chmod 644 {} \;
+          find . -type l | while read link; do
+            target=$(readlink "$link")
+            if echo "$target" | grep -q "^/root/"; then
+              new_target=$(echo "$target" | sed "s|^/root/|$HOME/|")
+              ln -sf "$new_target" "$link"
+            fi
+          done
 
       - name: Build Image
         run: |

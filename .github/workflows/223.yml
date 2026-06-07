@@ -1,0 +1,90 @@
+name: Build Kernel - SM-A057F
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Install dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y \
+            git bc bison flex libssl-dev libelf-dev \
+            make python3 zip unzip \
+            dwarves pahole \
+            gcc-aarch64-linux-gnu binutils-aarch64-linux-gnu
+
+      - name: Clone kernel source
+        run: |
+          git clone --depth=1 \
+            https://github.com/Hichem299/Kvm2.git \
+            kernel
+
+      - name: Set build environment variables
+        run: |
+          echo "KDIR=$GITHUB_WORKSPACE/kernel"         >> $GITHUB_ENV
+          echo "CLANG=$GITHUB_WORKSPACE/toolchain/proton-clang/bin" >> $GITHUB_ENV
+          echo "ARCH=arm64"                             >> $GITHUB_ENV
+          echo "SUBARCH=arm64"                          >> $GITHUB_ENV
+          echo "CROSS_COMPILE=aarch64-linux-gnu-"       >> $GITHUB_ENV
+          echo "CROSS_COMPILE_ARM32=arm-linux-gnueabi-" >> $GITHUB_ENV
+
+      - name: make prepare
+        run: |
+          cd $GITHUB_WORKSPACE/kernel
+          find . -name "fixdep" -delete
+          find . -name "*.o" -path "*/scripts/basic/*" -delete
+          PATH="$CLANG:$PATH" \
+          make ARCH=arm64 HOSTCC=gcc HOSTCXX=g++ olddefconfig
+          cp H/.config .config
+          make \
+            ARCH=arm64 \
+            SUBARCH=arm64 \
+            CC=clang \
+            CLANG_TRIPLE=aarch64-linux-gnu- \
+            CROSS_COMPILE=aarch64-linux-gnu- \
+            CROSS_COMPILE_ARM32=arm-linux-gnueabi- \
+            HOSTCC=gcc \
+            HOSTCXX=g++ \
+            prepare
+
+      - name: make scripts
+        run: |
+          cd $GITHUB_WORKSPACE/kernel
+          PATH="$CLANG:$PATH" \
+          make \
+            ARCH=arm64 \
+            SUBARCH=arm64 \
+            CC=clang \
+            CLANG_TRIPLE=aarch64-linux-gnu- \
+            CROSS_COMPILE=aarch64-linux-gnu- \
+            CROSS_COMPILE_ARM32=arm-linux-gnueabi- \
+            HOSTCC=gcc \
+            HOSTCXX=g++ \
+            scripts
+
+      - name: make Image
+        run: |
+          cd $GITHUB_WORKSPACE/kernel
+          PATH="$CLANG:$PATH" \
+          make \
+            -j$(nproc) \
+            ARCH=arm64 \
+            SUBARCH=arm64 \
+            CC=clang \
+            CLANG_TRIPLE=aarch64-linux-gnu- \
+            CROSS_COMPILE=aarch64-linux-gnu- \
+            CROSS_COMPILE_ARM32=arm-linux-gnueabi- \
+            HOSTCC=gcc \
+            HOSTCXX=g++ \
+            Image
+
+      - name: Upload Image
+        uses: actions/upload-artifact@v4
+        with:
+          name: kernel-Image
+          path: kernel/arch/arm64/boot/Image
+          if-no-files-found: error

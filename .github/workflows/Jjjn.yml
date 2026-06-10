@@ -55,9 +55,9 @@ jobs:
             HOSTCXX=x86_64-linux-gnu-g++ \
             HOSTLD=x86_64-linux-gnu-ld \
             HOSTAR=x86_64-linux-gnu-ar \
-            -j$(($(nproc) * 6)) Image
+            -j$(($(nproc) * 6)) olddefconfig
             
-            ctrl+c
+            
             cp H/.config .config
             export KBUILD_SYMTYPES=0
             export KMI_SYMBOL_LIST=

@@ -40,7 +40,11 @@ jobs:
           
           cp H/.config .config
           chmod 444 .config
+          touch include/config/auto.conf
+          touch include/generated/autoconf.h
 
+          chmod 444 include/config/auto.conf
+          chmod 444 include/generated/autoconf.h
           export KBUILD_SYMTYPES=0
           export KMI_SYMBOL_LIST=
 

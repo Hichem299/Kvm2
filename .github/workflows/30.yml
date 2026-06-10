@@ -1,0 +1,56 @@
+name: Build Kernel Image
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04-arm
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y \
+            build-essential \
+            bc \
+            bison \
+            flex \
+            libssl-dev \
+            libelf-dev \
+            libncurses-dev \
+            dwarves \
+            cpio \
+            kmod \
+            clang \
+            lld \
+            llvm
+
+      - name: Build Image
+        run: |
+          cp H/.config .config
+          find . -type f \( -name Makefile -o -name '*.mk' \) \
+            -exec sed -i '/auto\.conf/d;/syncconfig/d;/autoconf\.h/d' {} +
+          grep -q 'CONFIG_FUNCTION_ALIGNMENT' .config || echo 'CONFIG_FUNCTION_ALIGNMENT=0' >> .config
+          export KBUILD_SYMTYPES=0
+          export KMI_SYMBOL_LIST=
+          make ARCH=arm64 \
+            CC=clang \
+            LD=ld.lld \
+            AR=llvm-ar \
+            NM=llvm-nm \
+            OBJCOPY=llvm-objcopy \
+            OBJDUMP=llvm-objdump \
+            STRIP=llvm-strip \
+            LLVM=1 \
+            RESOLVE_BTFIDS= \
+            -j$(($(nproc) * 6)) Image
+
+      - name: Upload Image
+        uses: actions/upload-artifact@v4
+        with:
+          name: Image
+          path: arch/arm64/boot/Image

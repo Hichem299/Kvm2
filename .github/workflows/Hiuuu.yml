@@ -1,0 +1,102 @@
+name: Build Kernel Image
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+
+    env:
+      ARCH: arm64
+      CROSS_COMPILE: aarch64-linux-gnu-
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y \
+            build-essential \
+            bc \
+            bison \
+            flex \
+            libssl-dev \
+            libelf-dev \
+            libncurses-dev \
+            dwarves \
+            cpio \
+            kmod \
+            gcc \
+            g++ \
+            binutils \
+            gcc-aarch64-linux-gnu
+
+      - name: Verify .config exists
+        run: |
+          test -f .config || { echo ".config introuvable à la racine du dépôt"; exit 1; }
+          echo ".config trouvé"
+
+      - name: Fix permissions
+        run: |
+          find . -type f -name "*.sh" -exec chmod +x {} \;
+          find . -type f -name "Makefile" -exec chmod 644 {} \;
+          find . -type f -name "*.c" -exec chmod 644 {} \;
+          find . -type f -name "*.h" -exec chmod 644 {} \;
+
+          find . -type l | while read -r link; do
+            target="$(readlink "$link")"
+            if echo "$target" | grep -q "^/root/"; then
+              new_target="$(echo "$target" | sed "s|^/root/|$HOME/|")"
+              ln -sf "$new_target" "$link"
+            fi
+          done
+
+      - name: Patch source and kernel config
+        run: |
+          set -e
+
+          if [ -f drivers/hid/hid-samsung.c ]; then
+            sed -i '/set_bit(EV_REP, hi->input->evbit);/d' drivers/hid/hid-samsung.c
+            sed -i '/switch (usage->hid & HID_USAGE) {/i\        set_bit(EV_REP, hi->input->evbit);' drivers/hid/hid-samsung.c
+          fi
+
+          sed -i 's/^CONFIG_KASAN=y$/CONFIG_KASAN=n/' .config || true
+          sed -i 's/^CONFIG_KASAN_GENERIC=y$/CONFIG_KASAN_GENERIC=n/' .config || true
+          sed -i 's/^CONFIG_KASAN_OUTLINE=y$/CONFIG_KASAN_OUTLINE=n/' .config || true
+          sed -i 's/^CONFIG_KASAN_INLINE=y$/CONFIG_KASAN_INLINE=n/' .config || true
+          sed -i 's/^CONFIG_KASAN_VMALLOC=y$/CONFIG_KASAN_VMALLOC=n/' .config || true
+          sed -i 's/^CONFIG_KASAN_MODULE_TEST=y$/CONFIG_KASAN_MODULE_TEST=n/' .config || true
+
+          sed -i 's/^CONFIG_IKCONFIG=y$/CONFIG_IKCONFIG=n/' .config || true
+          sed -i 's/^CONFIG_IKCONFIG_PROC=y$/CONFIG_IKCONFIG_PROC=n/' .config || true
+
+      - name: Regenerate auto.conf
+        run: |
+          make ARCH=${ARCH} CROSS_COMPILE=${CROSS_COMPILE} prepare
+
+      - name: Build Image
+        run: |
+          export KBUILD_SYMTYPES=0
+          export KMI_SYMBOL_LIST=
+
+          make ARCH=${ARCH} CROSS_COMPILE=${CROSS_COMPILE} \
+            HOSTCC=gcc \
+            HOSTCXX=g++ \
+            HOSTLD=ld \
+            HOSTAR=ar \
+            -j"$(nproc)" \
+            Image
+
+      - name: Verify output
+        run: |
+          test -f arch/arm64/boot/Image || { echo "Image non générée"; exit 1; }
+          ls -lh arch/arm64/boot/Image
+
+      - name: Upload Image
+        uses: actions/upload-artifact@v4
+        with:
+          name: Image
+          path: arch/arm64/boot/Image

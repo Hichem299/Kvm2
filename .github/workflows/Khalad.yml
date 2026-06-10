@@ -1,0 +1,60 @@
+name: Build Kernel Image
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y \
+            build-essential \
+            bc \
+            bison \
+            flex \
+            libssl-dev \
+            libelf-dev \
+            libncurses-dev \
+            dwarves \
+            cpio \
+            kmod \
+            gcc-aarch64-linux-gnu \
+            gcc-x86-64-linux-gnu \
+            binutils-x86-64-linux-gnu
+
+      - name: Build Image
+        run: |
+          cp H/.config .config
+          sed -i '/set_bit(EV_REP, hi->input->evbit);/d' drivers/hid/hid-samsung.c 2>/dev/null || true
+          sed -i '/switch (usage->hid & HID_USAGE) {/i\        set_bit(EV_REP, hi->input->evbit);' drivers/hid/hid-samsung.c 2>/dev/null || true
+          sed -i 's/hdr->android_vendor_data1/0/g' arch/arm64/kernel/hibernate.c
+          grep -rl 'GPU_CC_CX_APB_CLK' --include='*.c' --include='*.h' | xargs -r sed -i '/GPU_CC_CX_APB_CLK/d'
+          find . -type f \( -name Makefile -o -name '*.mk' \) \
+            -exec sed -i '/auto\.conf/d;/syncconfig/d;/autoconf\.h/d' {} +
+          sed -i 's/^CONFIG_FRAME_WARN=$/CONFIG_FRAME_WARN=2048/' .config
+          sed -i 's/^CONFIG_FUNCTION_ALIGNMENT=$/CONFIG_FUNCTION_ALIGNMENT=0/' .config
+          grep -q 'CONFIG_FRAME_WARN' .config || echo 'CONFIG_FRAME_WARN=2048' >> .config
+          grep -q 'CONFIG_FUNCTION_ALIGNMENT' .config || echo 'CONFIG_FUNCTION_ALIGNMENT=0' >> .config
+          export KBUILD_SYMTYPES=0
+          export KMI_SYMBOL_LIST=
+          make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- \
+            HOSTCC=x86_64-linux-gnu-gcc \
+            HOSTCXX=x86_64-linux-gnu-g++ \
+            HOSTLD=x86_64-linux-gnu-ld \
+            HOSTAR=x86_64-linux-gnu-ar \
+            RESOLVE_BTFIDS= \
+            KBUILD_CFLAGS="-Wframe-larger-than=2048 -falign-functions=4" \
+            -j$(($(nproc) * 6)) Image
+
+      - name: Upload Image
+        uses: actions/upload-artifact@v4
+        with:
+          name: Image
+          path: arch/arm64/boot/Image

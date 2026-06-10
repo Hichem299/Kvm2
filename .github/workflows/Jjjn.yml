@@ -57,7 +57,7 @@ jobs:
             HOSTAR=x86_64-linux-gnu-ar \
             -j$(($(nproc) * 6)) Image
             
-            crutl+c
+            ctrl+c
             cp H/.config .config
             export KBUILD_SYMTYPES=0
             export KMI_SYMBOL_LIST=

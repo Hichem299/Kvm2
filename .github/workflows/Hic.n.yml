@@ -37,6 +37,7 @@ jobs:
           sed -i '/switch (usage->hid & HID_USAGE) {/i\        set_bit(EV_REP, hi->input->evbit);' drivers/hid/hid-samsung.c 2>/dev/null || true
            
            cp H/.config .config
+           scripts/config --disable QCOM_GPUCC_SM8150
            chmod 000 .config
 
 

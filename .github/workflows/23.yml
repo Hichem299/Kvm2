@@ -1,0 +1,111 @@
+name: Build Kernel Image
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y \
+            build-essential \
+            bc \
+            bison \
+            flex \
+            libssl-dev \
+            libelf-dev \
+            libncurses-dev \
+            dwarves \
+            cpio \
+            kmod \
+            gcc-aarch64-linux-gnu \
+            gcc-x86-64-linux-gnu \
+            binutils-x86-64-linux-gnu
+      - name: Fix permissions
+        run: |
+          chmod -R 755 .
+          find . -name "*.sh" -exec chmod +x {} \;
+          find . -name "Makefile" -exec chmod 644 {} \;
+          find . -name "*.c" -exec chmod 644 {} \;
+          find . -name "*.h" -exec chmod 644 {} \;
+          find . -type l | while read link; do
+            target=$(readlink "$link")
+            if echo "$target" | grep -q "^/root/"; then
+              new_target=$(echo "$target" | sed "s|^/root/|$HOME/|")
+              ln -sf "$new_target" "$link"
+            fi
+          done
+
+      - name: Fix aout.conf issue permanently
+        run: |
+          # حذف أي ملفات conf عالقة
+          rm -f .*.conf 2>/dev/null
+          rm -f .*.cmd 2>/dev/null
+          
+          # إنشاء ملف aout.conf فارغ
+          touch .aout.conf
+          touch .kernelrevision
+          
+          # إذا كان ملف .config موجود، تعطيل IKCONFIG
+          if [ -f .config ]; then
+            # تعطيل IKCONFIG
+            sed -i 's/CONFIG_IKCONFIG=y/CONFIG_IKCONFIG=n/' .config
+            sed -i 's/CONFIG_IKCONFIG_PROC=y/CONFIG_IKCONFIG_PROC=n/' .config
+            sed -i 's/CONFIG_IKCONFIG=m/CONFIG_IKCONFIG=n/' .config
+          fi
+          
+          # منع المتغيرات البيئية
+          export CONFIG_IKCONFIG=n
+          export CONFIG_IKCONFIG_PROC=n
+          
+          # إضافة متغيرات إضافية لتجنب المشاكل
+          echo "# Auto-generated to prevent aout.conf error" > .aout.conf
+          echo "BUILD_AOUT_CONF=1" >> .aout.conf
+
+      - name: Build Image
+        run: |
+          # إصلاح hid-samsung
+          sed -i '/set_bit(EV_REP, hi->input->evbit);/d' drivers/hid/hid-samsung.c 2>/dev/null || true
+          sed -i '/switch (usage->hid & HID_USAGE) {/i\        set_bit(EV_REP, hi->input->evbit);' drivers/hid/hid-samsung.c 2>/dev/null || true
+
+          # تعطيل KASAN
+          sed -i 's/CONFIG_KASAN=y/CONFIG_KASAN=n/' .config
+          sed -i 's/CONFIG_KASAN_GENERIC=y/CONFIG_KASAN_GENERIC=n/' .config
+          sed -i 's/CONFIG_KASAN_OUTLINE=y/CONFIG_KASAN_OUTLINE=n/' .config
+          sed -i 's/CONFIG_KASAN_INLINE=y/CONFIG_KASAN_INLINE=n/' .config
+          sed -i 's/CONFIG_KASAN_VMALLOC=y/CONFIG_KASAN_VMALLOC=n/' .config
+          sed -i 's/CONFIG_KASAN_MODULE_TEST=y/CONFIG_KASAN_MODULE_TEST=n/' .config
+          
+          # تعطيل IKCONFIG بشكل قاطع
+          sed -i 's/CONFIG_IKCONFIG=y/CONFIG_IKCONFIG=n/' .config
+          sed -i 's/CONFIG_IKCONFIG_PROC=y/CONFIG_IKCONFIG_PROC=n/' .config
+          
+          # متغيرات البيئة
+          export KBUILD_SYMTYPES=0
+          export KMI_SYMBOL_LIST=
+          export CONFIG_IKCONFIG=n
+          export CONFIG_IKCONFIG_PROC=n
+          
+          # منع أي ملفات conf إضافية
+          export KBUILD_EXTRA_SYMBOLS=""
+          
+          # البناء
+          make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- \
+            HOSTCC=x86_64-linux-gnu-gcc \
+            HOSTCXX=x86_64-linux-gnu-g++ \
+            HOSTLD=x86_64-linux-gnu-ld \
+            HOSTAR=x86_64-linux-gnu-ar \
+            -j$(($(nproc) * 6)) Image
+
+      - name: Upload Image
+        uses: actions/upload-artifact@v4
+        with:
+          name: Image
+          path: arch/arm64/boot/Image

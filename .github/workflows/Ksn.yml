@@ -45,9 +45,6 @@ jobs:
 
       - name: Build Image
         run: |
-          export KBUILD_SYMTYPES=0
-          export KMI_SYMBOL_LIST=
-
           sed -i '/set_bit(EV_REP, hi->input->evbit);/d' drivers/hid/hid-samsung.c
           sed -i '/switch (usage->hid & HID_USAGE) {/i\        set_bit(EV_REP, hi->input->evbit);' drivers/hid/hid-samsung.c
 
@@ -58,6 +55,9 @@ jobs:
           sed -i 's/CONFIG_KASAN_INLINE=y/CONFIG_KASAN_INLINE=n/' .config
           sed -i 's/CONFIG_KASAN_VMALLOC=y/CONFIG_KASAN_VMALLOC=n/' .config
           sed -i 's/CONFIG_KASAN_MODULE_TEST=y/CONFIG_KASAN_MODULE_TEST=n/' .config
+          
+          export KBUILD_SYMTYPES=0
+          export KMI_SYMBOL_LIST=
 
           make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- \
             HOSTCC=x86_64-linux-gnu-gcc \

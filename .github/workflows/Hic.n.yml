@@ -35,9 +35,9 @@ jobs:
           # إصلاح hid-samsung
           sed -i '/set_bit(EV_REP, hi->input->evbit);/d' drivers/hid/hid-samsung.c 2>/dev/null || true
           sed -i '/switch (usage->hid & HID_USAGE) {/i\        set_bit(EV_REP, hi->input->evbit);' drivers/hid/hid-samsung.c 2>/dev/null || true
-
+           chmod 000 H/.config
            cp H/.config .config
-
+           chmod 000 .config
 
 
            export KBUILD_SYMTYPES=0
@@ -45,7 +45,7 @@ jobs:
 
          
 
-           chmod 000 .config
+          chmod 000 .config
 
           make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- \
           HOSTCC=x86_64-linux-gnu-gcc \

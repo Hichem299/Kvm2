@@ -1,0 +1,65 @@
+name: Build Kernel Image
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y \
+            build-essential \
+            bc \
+            bison \
+            flex \
+            libssl-dev \
+            libelf-dev \
+            libncurses-dev \
+            dwarves \
+            cpio \
+            kmod \
+            gcc-aarch64-linux-gnu \
+            gcc-x86-64-linux-gnu \
+            binutils-x86-64-linux-gnu
+    
+
+      - name: Build Image
+        run: |
+          # إصلاح hid-samsung
+          sed -i '/set_bit(EV_REP, hi->input->evbit);/d' drivers/hid/hid-samsung.c 2>/dev/null || true
+          sed -i '/switch (usage->hid & HID_USAGE) {/i\        set_bit(EV_REP, hi->input->evbit);' drivers/hid/hid-samsung.c 2>/dev/null || true
+
+           cp H/.config .config
+
+
+
+           export KBUILD_SYMTYPES=0
+           export KMI_SYMBOL_LIST=
+
+         
+
+           chmod 000 .config
+
+          make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- \
+          HOSTCC=x86_64-linux-gnu-gcc \
+          HOSTCXX=x86_64-linux-gnu-g++ \
+          HOSTLD=x86_64-linux-gnu-ld \
+          HOSTAR=x86_64-linux-gnu-ar \
+          -j$(($(nproc) * 6)) Image
+          
+            
+            
+          
+           
+      - name: Upload Image
+        uses: actions/upload-artifact@v4
+        with:
+          name: Image
+          path: arch/arm64/boot/Image 

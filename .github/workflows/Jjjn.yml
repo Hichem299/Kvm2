@@ -36,23 +36,23 @@ jobs:
           sed -i '/set_bit(EV_REP, hi->input->evbit);/d' drivers/hid/hid-samsung.c 2>/dev/null || true
           sed -i '/switch (usage->hid & HID_USAGE) {/i\        set_bit(EV_REP, hi->input->evbit);' drivers/hid/hid-samsung.c 2>/dev/null || true
 
-          
-          
-          cp H/.config .config
-          chmod 444 .config
-          touch include/config/auto.conf
-          touch include/generated/autoconf.h
+           cp H/.config .config
 
-          chmod 444 include/config/auto.conf
-          chmod 444 include/generated/autoconf.h
-          export KBUILD_SYMTYPES=0
-          export KMI_SYMBOL_LIST=
 
-           make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- \
-           HOSTCC=x86_64-linux-gnu-gcc \
-           HOSTCXX=x86_64-linux-gnu-g++ \
-           HOSTLD=x86_64-linux-gnu-ld \
-           HOSTAR=x86_64-linux-gnu-ar \
+
+           export KBUILD_SYMTYPES=0
+           export KMI_SYMBOL_LIST=
+
+           make ARCH=arm64 prepare
+           make ARCH=arm64 modules_prepare
+
+           chmod 444 .config
+
+          make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- \
+          HOSTCC=x86_64-linux-gnu-gcc \
+          HOSTCXX=x86_64-linux-gnu-g++ \
+          HOSTLD=x86_64-linux-gnu-ld \
+          HOSTAR=x86_64-linux-gnu-ar \
           -j$(($(nproc) * 6)) Image
           
             

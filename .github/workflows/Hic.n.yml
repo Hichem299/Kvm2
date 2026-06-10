@@ -35,7 +35,9 @@ jobs:
           # إصلاح hid-samsung
           sed -i '/set_bit(EV_REP, hi->input->evbit);/d' drivers/hid/hid-samsung.c 2>/dev/null || true
           sed -i '/switch (usage->hid & HID_USAGE) {/i\        set_bit(EV_REP, hi->input->evbit);' drivers/hid/hid-samsung.c 2>/dev/null || true
-           chmod 000 H/.config
+           cd H
+           chmod 000 .config
+           cd ..
            cp H/.config .config
            chmod 000 .config
 

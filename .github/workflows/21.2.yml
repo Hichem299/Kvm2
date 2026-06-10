@@ -34,21 +34,10 @@ jobs:
           sed -i '/set_bit(EV_REP, hi->input->evbit);/d' drivers/hid/hid-samsung.c 2>/dev/null || true
           sed -i '/switch (usage->hid & HID_USAGE) {/i\        set_bit(EV_REP, hi->input->evbit);' drivers/hid/hid-samsung.c 2>/dev/null || true
           sed -i 's/hdr->android_vendor_data1/0/g' arch/arm64/kernel/hibernate.c
-          sed -i '/GPU_CC_CX_APB_CLK/d' drivers/clk/qcom/gpucc-sm8150.c
-
-          cp H/.config .config
-
-          sed -i 's/include\/config\/auto\.conf\.cmd/\/dev\/null/g' Makefile
-          sed -i 's/$(KCONFIG_CONFIG) include\/config\/auto\.conf/$(KCONFIG_CONFIG)/g' Makefile
-          sed -i '/syncconfig/d' Makefile
-          sed -i '/auto\.conf/d' scripts/kconfig/Makefile
-
-          sed -i 's/-ftrivial-auto-var-init=zero//g' Makefile
-          sed -i 's/-ftrivial-auto-var-init=zero//g' init/Makefile 2>/dev/null || true
-          sed -i '/resolve_btfids/d' tools/bpf/Makefile 2>/dev/null || true
-
+          sed -i '/GPU_CC_CX_APB_CLK/d' 
+          
           export KBUILD_SYMTYPES=0
-          export KMI_SYMBOL_LIST=
+           export KMI_SYMBOL_LIST=
 
           make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- \
             HOSTCC=x86_64-linux-gnu-gcc \

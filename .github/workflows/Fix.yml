@@ -96,7 +96,7 @@ jobs:
           
           # منع أي ملفات conf إضافية
           export KBUILD_EXTRA_SYMBOLS=""
-          
+          cp H/.config .config
           # البناء
           make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- \
             HOSTCC=x86_64-linux-gnu-gcc \

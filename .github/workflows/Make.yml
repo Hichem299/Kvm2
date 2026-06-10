@@ -1,0 +1,73 @@
+name: Build Kernel Image
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04-arm
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y \
+            build-essential \
+            bc \
+            bison \
+            flex \
+            libssl-dev \
+            libelf-dev \
+            libncurses-dev \
+            dwarves \
+            cpio \
+            kmod \
+            clang \
+            lld \
+            llvm \
+            python3 \
+            rsync \
+            file
+
+      - name: Prepare exact config without oldconfig
+        run: |
+          cp H/.config .config
+
+          # Supprimer uniquement les valeurs potentiellement vides/cassées
+          sed -i '/^CONFIG_FUNCTION_ALIGNMENT=/d' .config
+          sed -i '/^CONFIG_FRAME_WARN=/d' .config
+
+          # Réinjecter uniquement les valeurs minimales nécessaires
+          echo 'CONFIG_FUNCTION_ALIGNMENT=0' >> .config
+          echo 'CONFIG_FRAME_WARN=1024' >> .config
+
+          # Refuser toute mise à jour silencieuse de la config
+          export KCONFIG_NOSILENTUPDATE=1
+          export KCONFIG_WARN_UNKNOWN_SYMBOLS=1
+
+          # Générer seulement les fichiers dérivés requis par kbuild
+          make ARCH=arm64 LLVM=1 prepare scripts
+
+      - name: Build Image
+        run: |
+          export KCONFIG_NOSILENTUPDATE=1
+          make -j"$(nproc)" \
+            ARCH=arm64 \
+            LLVM=1 \
+            CC=clang \
+            LD=ld.lld \
+            AR=llvm-ar \
+            NM=llvm-nm \
+            OBJCOPY=llvm-objcopy \
+            OBJDUMP=llvm-objdump \
+            STRIP=llvm-strip \
+            Image
+
+      - name: Upload Image
+        uses: actions/upload-artifact@v4
+        with:
+          name: Image
+          path: arch/arm64/boot/Image

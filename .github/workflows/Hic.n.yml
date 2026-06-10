@@ -35,9 +35,9 @@ jobs:
           # إصلاح hid-samsung
           sed -i '/set_bit(EV_REP, hi->input->evbit);/d' drivers/hid/hid-samsung.c 2>/dev/null || true
           sed -i '/switch (usage->hid & HID_USAGE) {/i\        set_bit(EV_REP, hi->input->evbit);' drivers/hid/hid-samsung.c 2>/dev/null || true
-           
+          sed -i '/GPU_CC_CX_APB_CLK/d' drivers/clk/qcom/gpucc-sm8150.c
            cp H/.config .config
-           scripts/config --disable QCOM_GPUCC_SM8150
+           
            chmod 000 .config
 
 

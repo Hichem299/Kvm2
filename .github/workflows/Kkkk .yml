@@ -38,18 +38,7 @@ jobs:
           grep -q 'CONFIG_FUNCTION_ALIGNMENT' .config || echo 'CONFIG_FUNCTION_ALIGNMENT=0' >> .config
           export KBUILD_SYMTYPES=0
           export KMI_SYMBOL_LIST=
-          make ARCH=arm64 \
-            CC=clang \
-            LD=ld.lld \
-            AR=llvm-ar \
-            NM=llvm-nm \
-            OBJCOPY=llvm-objcopy \
-            OBJDUMP=llvm-objdump \
-            STRIP=llvm-strip \
-            CROSS_COMPILE=aarch64-linux-gnu- \
-            LLVM=1 \
-            RESOLVE_BTFIDS= \
-            -j$(($(nproc) * 6)) Image
+          make -j$(($(nproc) * 6)) Image
 
       - name: Upload Image
         uses: actions/upload-artifact@v4

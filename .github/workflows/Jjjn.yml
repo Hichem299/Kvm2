@@ -44,20 +44,22 @@ jobs:
           sed -i 's/CONFIG_KASAN_VMALLOC=y/CONFIG_KASAN_VMALLOC=n/' .config
           sed -i 's/CONFIG_KASAN_MODULE_TEST=y/CONFIG_KASAN_MODULE_TEST=n/' .config
           
+          cp H/.config .config
+          chmod 444 .config
+
+          export KBUILD_SYMTYPES=0
+          export KMI_SYMBOL_LIST=
+
+           make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- \
+           HOSTCC=x86_64-linux-gnu-gcc \
+           HOSTCXX=x86_64-linux-gnu-g++ \
+           HOSTLD=x86_64-linux-gnu-ld \
+           HOSTAR=x86_64-linux-gnu-ar \
+          -j$(($(nproc) * 6)) Image
           
+            
+            
           
-            
-            
-            
-            export KBUILD_SYMTYPES=0
-            export KMI_SYMBOL_LIST=
-            chmod 444 .config
-            make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- \
-            HOSTCC=x86_64-linux-gnu-gcc \
-            HOSTCXX=x86_64-linux-gnu-g++ \
-            HOSTLD=x86_64-linux-gnu-ld \
-            HOSTAR=x86_64-linux-gnu-ar \
-            -j$(($(nproc) * 6)) Image
            
       - name: Upload Image
         uses: actions/upload-artifact@v4

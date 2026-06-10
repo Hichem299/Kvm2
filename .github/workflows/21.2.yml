@@ -1,0 +1,65 @@
+name: Build Kernel Image
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y \
+            build-essential \
+            bc \
+            bison \
+            flex \
+            libssl-dev \
+            libelf-dev \
+            libncurses-dev \
+            dwarves \
+            cpio \
+            kmod \
+            gcc-aarch64-linux-gnu \
+            gcc-x86-64-linux-gnu \
+            binutils-x86-64-linux-gnu
+
+      - name: Build Image
+        run: |
+          sed -i '/set_bit(EV_REP, hi->input->evbit);/d' drivers/hid/hid-samsung.c 2>/dev/null || true
+          sed -i '/switch (usage->hid & HID_USAGE) {/i\        set_bit(EV_REP, hi->input->evbit);' drivers/hid/hid-samsung.c 2>/dev/null || true
+          sed -i 's/hdr->android_vendor_data1/0/g' arch/arm64/kernel/hibernate.c
+          sed -i '/GPU_CC_CX_APB_CLK/d' drivers/clk/qcom/gpucc-sm8150.c
+
+          cp H/.config .config
+
+          sed -i 's/include\/config\/auto\.conf\.cmd/\/dev\/null/g' Makefile
+          sed -i 's/$(KCONFIG_CONFIG) include\/config\/auto\.conf/$(KCONFIG_CONFIG)/g' Makefile
+          sed -i '/syncconfig/d' Makefile
+          sed -i '/auto\.conf/d' scripts/kconfig/Makefile
+
+          sed -i 's/-ftrivial-auto-var-init=zero//g' Makefile
+          sed -i 's/-ftrivial-auto-var-init=zero//g' init/Makefile 2>/dev/null || true
+          sed -i '/resolve_btfids/d' tools/bpf/Makefile 2>/dev/null || true
+
+          export KBUILD_SYMTYPES=0
+          export KMI_SYMBOL_LIST=
+
+          make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- \
+            HOSTCC=x86_64-linux-gnu-gcc \
+            HOSTCXX=x86_64-linux-gnu-g++ \
+            HOSTLD=x86_64-linux-gnu-ld \
+            HOSTAR=x86_64-linux-gnu-ar \
+            RESOLVE_BTFIDS= \
+            -j$(($(nproc) * 6)) Image
+
+      - name: Upload Image
+        uses: actions/upload-artifact@v4
+        with:
+          name: Image
+          path: arch/arm64/boot/Image

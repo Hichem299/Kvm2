@@ -31,7 +31,7 @@ jobs:
 
       - name: Build Image
         run: |
-          cp H/.config .config
+          
           sed -i '/set_bit(EV_REP, hi->input->evbit);/d' drivers/hid/hid-samsung.c 2>/dev/null || true
           sed -i '/switch (usage->hid & HID_USAGE) {/i\        set_bit(EV_REP, hi->input->evbit);' drivers/hid/hid-samsung.c 2>/dev/null || true
           sed -i 's/hdr->android_vendor_data1/0/g' arch/arm64/kernel/hibernate.c

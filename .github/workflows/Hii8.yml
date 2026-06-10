@@ -1,0 +1,68 @@
+name: Build Kernel Image
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04-arm
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y \
+            build-essential \
+            bc \
+            bison \
+            flex \
+            libssl-dev \
+            libelf-dev \
+            libncurses-dev \
+            dwarves \
+            cpio \
+            kmod \
+            clang \
+            lld \
+            llvm \
+            python3 \
+            rsync \
+            file
+
+      - name: Prepare config
+        run: |
+          cp H/.config .config
+
+          # Nettoyer d'anciennes valeurs cassées si elles existent
+          sed -i '/^CONFIG_FUNCTION_ALIGNMENT=/d' .config
+          sed -i '/^CONFIG_FRAME_WARN=/d' .config
+
+          # Ajouter des valeurs sûres
+          echo 'CONFIG_FUNCTION_ALIGNMENT=0' >> .config
+          echo 'CONFIG_FRAME_WARN=1024' >> .config
+
+          # Régénérer proprement auto.conf / autoconf.h
+          make ARCH=arm64 LLVM=1 olddefconfig
+
+      - name: Build Image
+        run: |
+          make -j"$(nproc)" \
+            ARCH=arm64 \
+            LLVM=1 \
+            CC=clang \
+            LD=ld.lld \
+            AR=llvm-ar \
+            NM=llvm-nm \
+            OBJCOPY=llvm-objcopy \
+            OBJDUMP=llvm-objdump \
+            STRIP=llvm-strip \
+            Image
+
+      - name: Upload Image
+        uses: actions/upload-artifact@v4
+        with:
+          name: Image
+          path: arch/arm64/boot/Image

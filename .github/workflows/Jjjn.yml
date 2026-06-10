@@ -56,7 +56,18 @@ jobs:
             HOSTLD=x86_64-linux-gnu-ld \
             HOSTAR=x86_64-linux-gnu-ar \
             -j$(($(nproc) * 6)) Image
-
+            
+            crutl+c
+            cp H/.config .config
+            export KBUILD_SYMTYPES=0
+            export KMI_SYMBOL_LIST=
+            make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- \
+            HOSTCC=x86_64-linux-gnu-gcc \
+            HOSTCXX=x86_64-linux-gnu-g++ \
+            HOSTLD=x86_64-linux-gnu-ld \
+            HOSTAR=x86_64-linux-gnu-ar \
+            -j$(($(nproc) * 6)) Image
+           
       - name: Upload Image
         uses: actions/upload-artifact@v4
         with:

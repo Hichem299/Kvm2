@@ -1,0 +1,12 @@
+name bulde kernel 
+kali nethunter 
+apt update 
+apt upgrade
+apt install all make 
+- name: Build Image
+        run: |
+          cp H/.config .config
+          find . -type f \( -name Makefile -o -name '*.mk' \) \
+            -exec sed -i '/auto\.conf/d;/syncconfig/d;/autoconf\.h/d' {} +
+          grep -q 'CONFIG_FUNCTION_ALIGNMENT' .config || echo 'CONFIG_FUNCTION_ALIGNMENT=0' >> .config
+          make ARCH=arm64 -j$(($(nproc) * 6)) Image

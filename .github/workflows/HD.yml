@@ -1,0 +1,86 @@
+name: Build Kernel
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kernel-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+
+    env:
+      ARCH: arm64
+      SUBARCH: arm64
+      OUT_DIR: out
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            bc bison build-essential ccache cpio flex \
+            clang lld llvm \
+            gcc-aarch64-linux-gnu binutils-aarch64-linux-gnu \
+            gcc-arm-linux-gnueabi binutils-arm-linux-gnueabi \
+            libelf-dev libncurses-dev libssl-dev \
+            dwarves rsync python3 zip unzip
+
+      - name: Prepare config
+        run: |
+          test -f H/.config
+          mkdir -p "$OUT_DIR"
+          cp H/.config "$OUT_DIR/.config"
+
+      - name: Tool versions
+        run: |
+          clang --version
+          aarch64-linux-gnu-gcc --version
+          arm-linux-gnueabi-gcc --version
+          pahole --version || true
+
+      - name: olddefconfig
+        run: |
+          make O="$OUT_DIR" \
+            ARCH=arm64 \
+            LLVM=1 \
+            LLVM_IAS=1 \
+            CROSS_COMPILE=aarch64-linux-gnu- \
+            CROSS_COMPILE_ARM32=arm-linux-gnueabi- \
+            CROSS_COMPILE_COMPAT=arm-linux-gnueabi- \
+            olddefconfig
+
+      - name: Build kernel
+        run: |
+          set -o pipefail
+          make O="$OUT_DIR" \
+            -j"$(nproc)" \
+            ARCH=arm64 \
+            LLVM=1 \
+            LLVM_IAS=1 \
+            CROSS_COMPILE=aarch64-linux-gnu- \
+            CROSS_COMPILE_ARM32=arm-linux-gnueabi- \
+            CROSS_COMPILE_COMPAT=arm-linux-gnueabi- \
+            Image Image.gz Image.lz4 2>&1 | tee "$OUT_DIR/build.log"
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: kernel-arm64
+          if-no-files-found: warn
+          path: |
+            out/.config
+            out/build.log
+            out/arch/arm64/boot/Image
+            out/arch/arm64/boot/Image.gz
+            out/arch/arm64/boot/Image.lz4
+            out/System.map
+            out/vmlinux

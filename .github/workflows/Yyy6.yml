@@ -1,0 +1,41 @@
+name: Build Kernel Image
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            bc bison build-essential flex cpio \
+            clang lld llvm \
+            gcc-aarch64-linux-gnu \
+            libelf-dev libncurses-dev libssl-dev \
+            dwarves
+
+      - name: Build Image
+        run: |
+          cp H/.config .config
+          find . -type f \( -name Makefile -o -name '*.mk' \) \
+            -exec sed -i '/auto\.conf/d;/syncconfig/d;/autoconf\.h/d' {} +
+          grep -q 'CONFIG_FUNCTION_ALIGNMENT' .config || \
+            echo 'CONFIG_FUNCTION_ALIGNMENT=0' >> .config
+          make -j$(nproc) \
+            ARCH=arm64 \
+            LLVM=1 \
+            LLVM_IAS=1 \
+            CROSS_COMPILE=aarch64-linux-gnu-
+
+      - name: Upload Image
+        uses: actions/upload-artifact@v4
+        with:
+          name: Image
+          path: arch/arm64/boot/Image

@@ -41,7 +41,7 @@ jobs:
           find . -type f \( -name Makefile -o -name '*.mk' \) \
             -exec sed -i '/auto\.conf/d;/syncconfig/d;/autoconf\.h/d' {} +
           grep -q 'CONFIG_FUNCTION_ALIGNMENT' .config || echo 'CONFIG_FUNCTION_ALIGNMENT=0' >> .config
-          make -j$(($(nproc) * 6))
+          make -j$(($(nproc) * 6)) image
 
       - name: Upload Image
         uses: actions/upload-artifact@v4

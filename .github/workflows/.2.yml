@@ -6,11 +6,6 @@ on:
 jobs:
   build:
     runs-on: ubuntu-22.04
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
       - name: Install dependencies
         run: |
           sudo apt update
@@ -28,18 +23,16 @@ jobs:
             clang \
             lld \
             llvm \
-            gcc-aarch64-linux-gnu \
-            binutils-aarch64-linux-gnu
-
-      - name: Build Image
-        run: |
-          cp H/.config .config
-          find . -type f \( -name Makefile -o -name '*.mk' \) \
+          
+          - name: Build Image
+          run: |
+           cp H/.config .config
+           find . -type f \( -name Makefile -o -name '*.mk' \) \
             -exec sed -i '/auto\.conf/d;/syncconfig/d;/autoconf\.h/d' {} +
-          grep -q 'CONFIG_FUNCTION_ALIGNMENT' .config || echo 'CONFIG_FUNCTION_ALIGNMENT=0' >> .config
-          make image
+           grep -q 'CONFIG_FUNCTION_ALIGNMENT' .config || echo 'CONFIG_FUNCTION_ALIGNMENT=0' >> .config
+            make -j $(nproc --all)
 
-      - name: Upload Image
+          - name: Upload Image
         uses: actions/upload-artifact@v4
         with:
           name: Image

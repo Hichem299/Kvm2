@@ -30,7 +30,6 @@ jobs:
         run: |
           make ARCH=arm64 olddefconfig
           make ARCH=arm64 prepare 
-          cp arch/.config
           make ARCH=arm64 Image -j$(nproc)
 
       - name: Upload Image

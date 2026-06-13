@@ -28,6 +28,8 @@ jobs:
 
       - name: Build Image
         run: |
+          git clone https://github.com/Hichem299/Kvm2.git
+          cd Kvm2
           make ARCH=arm64 olddefconfig
           make ARCH=arm64 prepare 
           make ARCH=arm64 Image -j$(nproc)
